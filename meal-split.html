@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#edf2ef">
+  <title>Alexとの食事会</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, "Hiragino Sans", "Yu Gothic", sans-serif;
+      color: #172922;
+      background: #edf2ef;
+      --muted: #496057;
+      --line: #d5e0d9;
+      --green: #175642;
+      --error: #9b321d;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { scroll-padding-top: calc(9rem + env(safe-area-inset-top)); }
+    body {
+      margin: 0;
+      line-height: 1.55;
+      padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+    }
+    button {
+      font: inherit;
+      color: var(--green);
+      background: #edf5f0;
+      border: 1px solid #a9beb3;
+      border-radius: .55rem;
+      min-height: 3rem;
+      cursor: pointer;
+    }
+    button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+    button:disabled { opacity: .55; cursor: default; }
+    .header-actions, .languages { display: flex; gap: .3rem; align-items: center; }
+    .header-actions { justify-content: space-between; flex-wrap: wrap; margin-top: .8rem; }
+    .language { min-width: 3rem; padding: .4rem .55rem; font-size: .875rem; font-weight: 700; }
+    .language[aria-pressed="true"] { background: var(--green); color: #fff; }
+    :lang(en) input { padding-inline-end: 2.5rem; }
+    :lang(en) .unit { inset-inline-end: .5rem; }
+    .mode { padding: .45rem .8rem; font-weight: 700; }
+    .mode[aria-pressed="true"] { background: var(--green); color: #fff; }
+    .payment-input { display: grid; grid-template-columns: 3rem minmax(0, 1fr) 3rem; gap: .35rem; align-items: stretch; margin-top: .25rem; }
+    .payment-input .input-wrap { margin: 0; }
+    .payment-input button { padding: 0; font-size: 1.2rem; }
+    main {
+      width: min(100% - 1.5rem, 31rem);
+      margin: 0 auto;
+      padding-block: calc(1rem + env(safe-area-inset-top)) calc(1.5rem + env(safe-area-inset-bottom));
+    }
+    header { margin-bottom: 1rem; }
+    h1, h2, p, dl, dd { margin: 0; }
+    h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); letter-spacing: -.035em; }
+    header p { color: var(--muted); margin-top: .3rem; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+    form, .summary {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      padding: clamp(.8rem, 4vw, 1.25rem);
+    }
+    h2 { font-size: 1.05rem; }
+    .fields { display: grid; gap: .85rem; margin-top: .8rem; }
+    label { display: block; font-size: .9rem; font-weight: 650; }
+    .input-wrap { position: relative; margin-top: .25rem; }
+    input {
+      width: 100%;
+      border: 1px solid #a9beb3;
+      background: #f9fbfa;
+      border-radius: .55rem;
+      color: inherit;
+      font: inherit;
+      font-size: max(1rem, 16px);
+      font-variant-numeric: tabular-nums;
+      padding: .58rem 2.15rem .58rem .7rem;
+      min-height: 3rem;
+      appearance: textfield;
+    }
+    input::-webkit-inner-spin-button, input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+    input:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+    input[aria-invalid="true"] { border-color: var(--error); }
+    input:disabled { opacity: .55; }
+    input::placeholder { color: var(--muted); opacity: 1; }
+    .unit { position: absolute; inset-inline-end: .75rem; top: 50%; transform: translateY(-50%); pointer-events: none; }
+    .unit, .hint { color: var(--muted); font-size: .875rem; }
+    .hint { margin-top: .3rem; }
+    .split {
+      margin-top: 1rem;
+      padding: .75rem .85rem;
+      border-radius: .6rem;
+      background: #edf5f0;
+      color: #254f42;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: .2rem .6rem;
+      font-size: .9rem;
+    }
+    .split output { font-weight: 700; }
+    .adjustment { margin-top: 1.2rem; }
+    .result {
+      position: sticky;
+      top: max(.4rem, env(safe-area-inset-top));
+      z-index: 1;
+      padding: .65rem .9rem;
+      border-radius: .8rem;
+      background: var(--green);
+      color: #fff;
+    }
+    @media (max-height: 28rem) {
+      html { scroll-padding-top: 1rem; }
+      .result { position: static; }
+    }
+    .result h2 { font-size: .95rem; }
+    .result output {
+      display: block;
+      font-size: clamp(1.65rem, 4vw, 2.5rem);
+      line-height: 1.25;
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+      margin: .2rem 0;
+    }
+    .status { font-size: .875rem; color: #e3f5eb; }
+    .status.alert { color: #fff0bd; font-weight: 700; }
+    dl { display: grid; gap: .45rem; }
+    .summary h2 { margin-bottom: .65rem; }
+    dl div { display: flex; justify-content: space-between; gap: .7rem; font-size: .9rem; }
+    dt { color: var(--muted); }
+    dd { text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .sum { padding-top: .55rem; margin-top: .15rem; border-top: 1px solid var(--line); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1 data-text="title">Alexとの食事会</h1>
+      <p data-text="intro">ゲストの Alex は 0 円。ご本人を含めた人数で精算します。</p>
+      <div class="header-actions">
+        <div id="languages" class="languages" role="group" aria-label="言語" data-label="language">
+          <button class="language" type="button" data-language="en" lang="en" aria-label="English" aria-pressed="false">EN</button>
+          <button class="language" type="button" data-language="ja" lang="ja" aria-label="日本語" aria-pressed="true">JP</button>
+        </div>
+        <button id="privacy" class="mode" type="button" aria-label="Open / Private 表示切替" data-label="privacy" aria-pressed="false">Private</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <div id="personal-result" class="result" role="status" aria-live="polite" aria-atomic="true">
+        <h2 data-text="ownHeading">ご本人の自己負担額</h2>
+        <output id="self" aria-live="off">—</output>
+        <p id="status" class="status">会計総額を入力してください。</p>
+      </div>
+      <form id="bill">
+        <h2 data-text="billHeading">会計と参加人数</h2>
+        <div class="fields">
+          <div>
+            <label for="total" data-text="billTotal">会計総額</label>
+            <div class="input-wrap">
+              <input id="total" type="number" inputmode="numeric" min="0" max="999999999" step="1" placeholder="例 20000" required>
+              <span class="unit" aria-hidden="true" data-text="yenUnit">円</span>
+            </div>
+          </div>
+          <div>
+            <label for="adults" data-text="adultCount">社会人の人数</label>
+            <div class="input-wrap">
+              <input id="adults" type="number" inputmode="numeric" min="0" max="9999" step="1" value="2" aria-describedby="count-hint" required>
+              <span class="unit" aria-hidden="true" data-text="peopleUnit">人</span>
+            </div>
+          </div>
+          <div>
+            <label for="students" data-text="studentCount">学生の人数</label>
+            <div class="input-wrap">
+              <input id="students" type="number" inputmode="numeric" min="0" max="9999" step="1" value="7" aria-describedby="count-hint" required>
+              <span class="unit" aria-hidden="true" data-text="peopleUnit">人</span>
+            </div>
+          </div>
+          <div>
+            <label for="helpers" data-text="helperCount">手伝い学生の人数</label>
+            <div class="input-wrap">
+              <input id="helpers" type="number" inputmode="numeric" min="0" max="7" step="1" value="2" aria-describedby="count-hint" required>
+              <span class="unit" aria-hidden="true" data-text="peopleUnit">人</span>
+            </div>
+          </div>
+        </div>
+        <p class="hint" id="count-hint" data-text="countHint">社会人の人数にはご本人とAlexを含めません。学生の人数には手伝い学生も含めます。手伝い学生の分はご本人が負担します。</p>
+        <p class="split">
+          <span id="payers">均等割りの目安（10人）</span>
+          <output id="equal" aria-live="off">—</output>
+        </p>
+
+        <section class="adjustment" aria-labelledby="adjustment-title">
+          <h2 id="adjustment-title" data-text="adjustmentHeading">支払額の調整</h2>
+          <p class="hint" data-text="adjustmentHint">＋ / − または手入力で100円刻みに調整できます。</p>
+          <div class="fields">
+            <div>
+              <label for="adult-rate" data-text="adultRate">社会人 1人あたり</label>
+              <div class="payment-input">
+                <button type="button" data-field="adult-rate" data-step="-1" aria-label="社会人の支払額を100円減らす" data-label="lessAdult">−</button>
+                <div class="input-wrap">
+                  <input id="adult-rate" type="number" inputmode="numeric" min="0" max="999999900" step="1" aria-describedby="adult-hint">
+                  <span class="unit" aria-hidden="true" data-text="yenUnit">円</span>
+                </div>
+                <button type="button" data-field="adult-rate" data-step="1" aria-label="社会人の支払額を100円増やす" data-label="moreAdult">＋</button>
+              </div>
+              <p class="hint" id="adult-hint">空欄で均等割りの額</p>
+            </div>
+            <div>
+              <label for="student-rate" data-text="studentRate">支払う学生 1人あたり</label>
+              <div class="payment-input">
+                <button type="button" data-field="student-rate" data-step="-1" aria-label="学生の支払額を100円減らす" data-label="lessStudent">−</button>
+                <div class="input-wrap">
+                  <input id="student-rate" type="number" inputmode="numeric" min="0" max="999999900" step="100" value="1000" aria-describedby="student-hint">
+                  <span class="unit" aria-hidden="true" data-text="yenUnit">円</span>
+                </div>
+                <button type="button" data-field="student-rate" data-step="1" aria-label="学生の支払額を100円増やす" data-label="moreStudent">＋</button>
+              </div>
+              <p class="hint" id="student-hint" data-text="studentHint">目安は 1,000〜1,500 円</p>
+            </div>
+            <div>
+              <label for="own-rate" data-text="ownRate">ご本人の支払額</label>
+              <div class="payment-input">
+                <button type="button" data-field="own-rate" data-step="-1" aria-label="ご本人の支払額を100円減らす" data-label="lessOwn">−</button>
+                <div class="input-wrap">
+                  <input id="own-rate" type="number" inputmode="numeric" min="0" max="999999900" step="100" aria-describedby="own-hint">
+                  <span class="unit" aria-hidden="true" data-text="yenUnit">円</span>
+                </div>
+                <button type="button" data-field="own-rate" data-step="1" aria-label="ご本人の支払額を100円増やす" data-label="moreOwn">＋</button>
+              </div>
+              <p class="hint" id="own-hint" data-text="ownHint">空欄で残額を自動計算。金額を入れると手入力に切り替わります。</p>
+            </div>
+          </div>
+        </section>
+      </form>
+
+      <aside class="summary" aria-label="精算結果" data-label="summary">
+        <section id="public-result" aria-labelledby="public-title" hidden>
+          <h2 id="public-title" data-text="publicHeading">参加者へのご案内</h2>
+          <dl>
+            <div><dt data-text="guest">ゲスト Alex</dt><dd data-text="zero">0 円</dd></div>
+            <div data-helper-summary><dt>手伝い学生（2人、各0円）</dt><dd data-text="zero">0 円</dd></div>
+            <div id="public-adults"><dt data-text="adultRate">社会人 1人あたり</dt><dd id="public-adult-rate">—</dd></div>
+            <div id="public-students"><dt data-text="studentRate">支払う学生 1人あたり</dt><dd id="public-student-rate">—</dd></div>
+          </dl>
+        </section>
+        <dl id="private-breakdown" aria-label="精算内訳" data-label="breakdown">
+          <div><dt data-text="guest">ゲスト Alex</dt><dd data-text="zero">0 円</dd></div>
+          <div data-helper-summary><dt>手伝い学生（2人、各0円）</dt><dd data-text="zero">0 円</dd></div>
+          <div><dt data-text="adultSubtotal">社会人 小計</dt><dd id="adults-subtotal">—</dd></div>
+          <div><dt data-text="studentSubtotal">学生 小計</dt><dd id="students-subtotal">—</dd></div>
+          <div class="sum"><dt data-text="collected">支払合計</dt><dd id="collected">—</dd></div>
+        </dl>
+      </aside>
+    </div>
+  </main>
+  <script>
+    const bill = document.getElementById('bill');
+    const privacy = document.getElementById('privacy');
+    const paymentStep = 100;
+    const helperRows = document.querySelectorAll('[data-helper-summary]');
+    const adjustmentButtons = bill.querySelectorAll('[data-step]');
+    const fields = {
+      total: document.getElementById('total'),
+      adults: document.getElementById('adults'),
+      students: document.getElementById('students'),
+      helpers: document.getElementById('helpers'),
+      adultRate: document.getElementById('adult-rate'),
+      studentRate: document.getElementById('student-rate'),
+      ownRate: document.getElementById('own-rate')
+    };
+    const translations = {
+      ja: {
+        intro: "ゲストの Alex は 0 円。ご本人を含めた人数で精算します。",
+        billHeading: "会計と参加人数",
+        billTotal: "会計総額",
+        adultCount: "社会人の人数",
+        studentCount: "学生の人数",
+        yenUnit: "円",
+        peopleUnit: "人",
+        countHint: "社会人の人数にはご本人とAlexを含めません。学生の人数には手伝い学生も含めます。手伝い学生の分はご本人が負担します。",
+        adjustmentHeading: "支払額の調整",
+        adjustmentHint: "＋ / − または手入力で100円刻みに調整できます。",
+        adultRate: "社会人 1人あたり",
+        adultHint: "空欄で均等割りの額",
+        adultMinimum: amount => "下限は均等割りの " + amount + "。空欄でこの額を使用。",
+        belowAdultMinimum: amount => "社会人の支払額は " + amount + " 以上にしてください。",
+        studentRate: "支払う学生 1人あたり",
+        studentHint: "目安は 1,000〜1,500 円",
+        ownRate: "ご本人の支払額",
+        ownHint: "空欄で残額を自動計算。金額を入れると手入力に切り替わります。",
+        ownHeading: "ご本人の自己負担額",
+        publicHeading: "参加者へのご案内",
+        guest: "ゲスト Alex",
+        helperCount: "手伝い学生の人数",
+        helperSummary: count => "手伝い学生（" + count + "人、各0円）",
+        helperMissing: "手伝い学生の人数を入力してください。",
+        helperTooMany: "手伝い学生の人数は学生の人数以下にしてください。",
+        adultSubtotal: "社会人 小計",
+        studentSubtotal: "学生 小計",
+        collected: "支払合計",
+        summary: "精算結果",
+        breakdown: "精算内訳",
+        lessAdult: "社会人の支払額を100円減らす",
+        moreAdult: "社会人の支払額を100円増やす",
+        lessStudent: "学生の支払額を100円減らす",
+        moreStudent: "学生の支払額を100円増やす",
+        lessOwn: "ご本人の支払額を100円減らす",
+        moreOwn: "ご本人の支払額を100円増やす",
+        title: "Alexとの食事会",
+        language: "言語",
+        privacy: "Open / Private 表示切替",
+        zero: "0 円",
+        totalExample: "例 20000",
+        auto: "自動",
+        needsTotal: "会計総額を入力してください。",
+        needsAmounts: "人数と支払額を有効な整数で入力してください。",
+        invalidRate: "支払額は100円刻みで入力してください。",
+        invalidCountOrTotal: "会計総額と人数は入力範囲内の整数で入力してください。",
+        balanced: "会計総額と一致",
+        amount: value => value + " 円",
+        splitLabel: count => "均等割りの目安（" + (count ?? "人数未確定") + (count === null ? "" : "人") + "）",
+        shortfall: amount => amount + " 不足",
+        overage: amount => amount + " 超過",
+      },
+      en: {
+        intro: "Alex is our guest and pays nothing. The split includes you.",
+        billHeading: "Bill and headcount",
+        billTotal: "Total bill",
+        adultCount: "Number of working adults",
+        studentCount: "Number of students",
+        yenUnit: "JPY",
+        peopleUnit: "",
+        countHint: "Exclude yourself and Alex from the adult count. Include helpers in the total student count. You cover their shares.",
+        adjustmentHeading: "Adjust payments",
+        adjustmentHint: "Use + / − or enter an amount in ¥100 increments.",
+        adultRate: "Per working adult",
+        adultHint: "Leave blank to use the equal share.",
+        adultMinimum: amount => "Minimum: " + amount + " (equal share). Leave blank to use this amount.",
+        belowAdultMinimum: amount => "Enter at least " + amount + " per working adult.",
+        studentRate: "Per paying student",
+        studentHint: "Suggested range: ¥1,000–¥1,500.",
+        ownRate: "Your payment",
+        ownHint: "Leave blank to cover the remaining balance, or enter your own amount.",
+        ownHeading: "Your share",
+        publicHeading: "What each guest pays",
+        guest: "Alex (guest)",
+        helperCount: "Number of student helpers",
+        helperSummary: count => "Student helpers (" + count + ", ¥0 each)",
+        helperMissing: "Enter the number of student helpers.",
+        helperTooMany: "The number of student helpers cannot exceed the total number of students.",
+        adultSubtotal: "Working adults subtotal",
+        studentSubtotal: "Students subtotal",
+        collected: "Total payments",
+        summary: "Payment summary",
+        breakdown: "Payment breakdown",
+        lessAdult: "Decrease payment per working adult by ¥100",
+        moreAdult: "Increase payment per working adult by ¥100",
+        lessStudent: "Decrease payment per student by ¥100",
+        moreStudent: "Increase payment per student by ¥100",
+        lessOwn: "Decrease your payment by ¥100",
+        moreOwn: "Increase your payment by ¥100",
+        title: "Dinner with Alex",
+        language: "Language",
+        privacy: "Toggle Open / Private view",
+        zero: "¥0",
+        totalExample: "e.g. 20000",
+        auto: "Auto",
+        needsTotal: "Enter the total bill.",
+        needsAmounts: "Enter valid whole numbers for the headcount and payments.",
+        invalidRate: "Enter payment amounts in ¥100 increments.",
+        invalidCountOrTotal: "Enter whole numbers within range for the total and headcount.",
+        balanced: "Payments match the total bill.",
+        amount: value => "¥" + value,
+        splitLabel: count => "Equal share (" + (count === null ? "headcount pending" : count + " included") + ")",
+        shortfall: amount => amount + " short",
+        overage: amount => amount + " over",
+      },
+    };
+    let language = 'ja';
+    let copy = translations[language];
+    let number = new Intl.NumberFormat(language);
+    const formatYen = value => value === null ? '—' : copy.amount(number.format(value));
+    const languageButtons = document.querySelectorAll('[data-language]');
+
+    function selectLanguage(selected) {
+      language = selected;
+      copy = translations[language];
+      number = new Intl.NumberFormat(language);
+      document.documentElement.lang = language;
+      document.title = copy.title;
+      fields.total.placeholder = copy.totalExample;
+      for (const element of document.querySelectorAll('[data-text]')) {
+        element.textContent = copy[element.dataset.text];
+      }
+      for (const element of document.querySelectorAll('[data-label]')) {
+        element.setAttribute('aria-label', copy[element.dataset.label]);
+      }
+      for (const button of languageButtons) {
+        button.setAttribute('aria-pressed', String(button.dataset.language === language));
+      }
+      update();
+    }
+
+    for (const button of languageButtons) {
+      button.addEventListener('click', () => selectLanguage(button.dataset.language));
+    }
+
+    function show(id, text) {
+      document.getElementById(id).textContent = text;
+    }
+
+    function read(field, fallback = null) {
+      const valid = field.validity.valid;
+      const invalid = !field.disabled && !valid && (field.value !== '' || field.validity.badInput);
+      field.setAttribute('aria-invalid', String(invalid));
+      if (field.disabled) return fallback;
+      if (field.validity.badInput) return null;
+      if (field.value === '' && !field.required) return fallback;
+      return valid ? field.valueAsNumber : null;
+    }
+
+    function update() {
+      const total = read(fields.total);
+      const adults = read(fields.adults);
+      const students = read(fields.students);
+      fields.helpers.max = students === null ? fields.students.max : String(students);
+      const helpers = read(fields.helpers);
+      const payingStudents = students === null || helpers === null ? null : students - helpers;
+      const splitCount = adults === null || students === null ? null : 1 + adults + students;
+      const equal = total === null || splitCount === null ? null : Math.floor(total / splitCount);
+      show('payers', copy.splitLabel(splitCount === null ? null : number.format(splitCount)));
+      show('equal', formatYen(equal));
+
+      fields.adultRate.disabled = adults === 0;
+      fields.studentRate.disabled = payingStudents === null || payingStudents === 0;
+      fields.adultRate.min = String(equal ?? 0);
+      fields.adultRate.placeholder = equal === null ? copy.auto : String(equal);
+      show('adult-hint', equal === null ? copy.adultHint : copy.adultMinimum(formatYen(equal)));
+
+      const enteredAdultRate = fields.adultRate.valueAsNumber;
+      // The exact equal share is allowed even when it falls between two increments.
+      const offStep = Number.isFinite(enteredAdultRate) &&
+        enteredAdultRate !== equal && enteredAdultRate % paymentStep !== 0;
+      fields.adultRate.setCustomValidity(offStep ? copy.invalidRate : '');
+      const adultRate = read(fields.adultRate, equal);
+      const studentRate = read(fields.studentRate);
+      const adultSubtotal = adults === 0 ? 0 :
+        adults === null || adultRate === null ? null : adults * adultRate;
+      const studentSubtotal = payingStudents === 0 ? 0 :
+        payingStudents === null || studentRate === null ? null : payingStudents * studentRate;
+      const remaining = total === null || adultSubtotal === null || studentSubtotal === null ?
+        null : total - adultSubtotal - studentSubtotal;
+
+      const automatic = remaining === null ? null : Math.max(0, remaining);
+      fields.ownRate.placeholder = automatic === null ? copy.auto : String(automatic);
+      const ownRate = read(fields.ownRate, automatic);
+      for (const button of adjustmentButtons) {
+        const field = document.getElementById(button.dataset.field);
+        const atAdultMinimum = field === fields.adultRate && button.dataset.step === '-1' &&
+          equal !== null && (adultRate ?? equal) <= equal;
+        button.disabled = field.disabled || atAdultMinimum;
+      }
+      document.getElementById('public-adults').hidden = adults === 0;
+      document.getElementById('public-students').hidden = payingStudents === 0;
+      for (const row of helperRows) {
+        row.hidden = students === null || helpers === null || helpers === 0;
+        if (!row.hidden) row.querySelector('dt').textContent = copy.helperSummary(number.format(helpers));
+      }
+      show('public-adult-rate', formatYen(adultRate));
+      show('public-student-rate', formatYen(studentRate));
+      const collected = remaining === null || ownRate === null ?
+        null : adultSubtotal + studentSubtotal + ownRate;
+      const difference = collected === null ? null : collected - total;
+
+      show('adults-subtotal', formatYen(adultSubtotal));
+      show('students-subtotal', formatYen(studentSubtotal));
+      show('self', collected === null ? '—' : formatYen(ownRate));
+      show('collected', formatYen(collected));
+
+      let message = copy.needsAmounts;
+      if (!fields.adultRate.disabled && fields.adultRate.validity.rangeUnderflow && equal !== null) {
+        message = copy.belowAdultMinimum(formatYen(equal));
+      } else if (fields.helpers.validity.rangeOverflow && students !== null) {
+        message = copy.helperTooMany;
+      } else if (fields.helpers.validity.valueMissing) {
+        message = copy.helperMissing;
+      } else if (bill.querySelector('[aria-invalid="true"]')) {
+        message = bill.querySelector('.payment-input [aria-invalid="true"]')
+          ? copy.invalidRate
+          : copy.invalidCountOrTotal;
+      } else if (total === null) {
+        message = copy.needsTotal;
+      } else if (difference !== null) {
+        if (difference < 0) message = copy.shortfall(formatYen(-difference));
+        else if (difference > 0) message = copy.overage(formatYen(difference));
+        else message = copy.balanced;
+      }
+      show('status', message);
+      document.getElementById('status').classList.toggle('alert', difference !== null && difference !== 0);
+    }
+
+    function adjustPayment(field, direction) {
+      const current = read(field) ?? Number(field.placeholder || 0);
+      const base = Number.isFinite(current) ? current / paymentStep : 0;
+      const next = direction > 0 ? Math.floor(base) + 1 : Math.ceil(base) - 1;
+      field.value = String(Math.max(Number(field.min), Math.min(Number(field.max), next * paymentStep)));
+      update();
+    }
+
+    privacy.addEventListener('click', () => {
+      const isOpen = privacy.getAttribute('aria-pressed') === 'false';
+      privacy.setAttribute('aria-pressed', String(isOpen));
+      privacy.textContent = isOpen ? 'Open' : 'Private';
+      bill.hidden = isOpen;
+      document.getElementById('personal-result').hidden = isOpen;
+      document.getElementById('private-breakdown').hidden = isOpen;
+      document.getElementById('public-result').hidden = !isOpen;
+    });
+
+    bill.addEventListener('click', event => {
+      const button = event.target.closest('[data-step]');
+      if (button) adjustPayment(document.getElementById(button.dataset.field), Number(button.dataset.step));
+    });
+
+    bill.addEventListener('keydown', event => {
+      if (!event.target.matches('.payment-input input') || !['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+      event.preventDefault();
+      adjustPayment(event.target, event.key === 'ArrowUp' ? 1 : -1);
+    });
+
+    bill.addEventListener('input', update);
+    bill.addEventListener('submit', event => event.preventDefault());
+    window.addEventListener('pageshow', update);
+    update();
+  </script>
+</body>
+</html>
